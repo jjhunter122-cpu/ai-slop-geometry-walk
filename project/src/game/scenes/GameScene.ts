@@ -445,9 +445,35 @@ export class GameScene extends Scene {
     upgrade.apply(this.player);
     this.upgradesTaken += 1;
 
+    // Debug: log boss count and lives at defeat time
+    console.log(`[defeatBoss] bossCount=${this.bossCount}, lives before=${this.player.lives}, upgrade=${upgrade.name}`);
+
+    // Always hide boss HUD
     this.hud.hideBoss();
-    this.hud.showToast(`${upgrade.name} — ${upgrade.describe}`);
-    this.toastTimer = TOAST_SECONDS;
+
+    // Grant an extra life every other boss (2, 4, 6...), capped at 3.
+    const grantExtraLife = this.bossCount % 2 === 0 && this.player.lives < 3;
+    if (grantExtraLife) {
+      this.player.lives += 1;
+      this.hud.setLives(this.player.lives);
+      console.log(`[defeatBoss] EXTRA LIFE GRANTED! lives now=${this.player.lives}`);
+    }
+
+    // Show toasts: extra life first (if granted), then upgrade
+    if (grantExtraLife) {
+      this.hud.showToast(`Extra Life! — +1 Life (${this.player.lives}/3)`);
+      this.toastTimer = TOAST_SECONDS;
+      // Chain the upgrade toast after the extra life toast
+      setTimeout(() => {
+        if (!this.gameOver) {
+          this.hud.showToast(`${upgrade.name} — ${upgrade.describe}`);
+          this.toastTimer = TOAST_SECONDS;
+        }
+      }, TOAST_SECONDS * 1000 + 200);
+    } else {
+      this.hud.showToast(`${upgrade.name} — ${upgrade.describe}`);
+      this.toastTimer = TOAST_SECONDS;
+    }
   }
 
   private updateHud(): void {
